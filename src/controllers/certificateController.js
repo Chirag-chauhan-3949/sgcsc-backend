@@ -27,6 +27,8 @@ exports.createCertificate = async (req, res) => {
       courseDuration,
       coursePeriodFrom,
       coursePeriodTo,
+      centerName,
+      atcName,
       certificateImage
     } = req.body || {};
 
@@ -60,6 +62,8 @@ exports.createCertificate = async (req, res) => {
       courseDuration: courseDuration ? String(courseDuration).trim() : null,
       coursePeriodFrom: parsedCoursePeriodFrom,
       coursePeriodTo: parsedCoursePeriodTo,
+      centerName: centerName ? String(centerName).trim() : null,
+      atcName: atcName ? String(atcName).trim() : null,
       certificateImage: certificateImage || null,
     });
 
@@ -143,6 +147,8 @@ exports.updateCertificate = async (req, res) => {
       certificateNumber, 
       issueDate,
       renewalDate,
+      centerName,
+      atcName,
       certificateImage
     } = req.body || {};
 
@@ -195,6 +201,14 @@ exports.updateCertificate = async (req, res) => {
 
     if (certificateImage != null) {
       update.certificateImage = certificateImage;
+    }
+
+    if (centerName != null) {
+      update.centerName = centerName ? String(centerName).trim() : null;
+    }
+
+    if (atcName != null) {
+      update.atcName = atcName ? String(atcName).trim() : null;
     }
 
     const cert = await Certificate.findByIdAndUpdate(id, update, {

@@ -63,6 +63,11 @@ const certificateSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    // ATC Name to display on certificate
+    atcName: {
+      type: String,
+      default: null
+    },
     // Date of birth for public verification
     dob: {
       type: Date,
