@@ -10,19 +10,18 @@ function parseDate(dateStr) {
 
 /**
  * POST /api/certificates
- * Body: { name, fatherName, courseName, sessionFrom, sessionTo, grade, enrollmentNumber, certificateNumber, issueDate }
  */
 exports.createCertificate = async (req, res) => {
   try {
-    const { 
-      name, 
-      fatherName, 
-      courseName, 
-      sessionFrom, 
-      sessionTo, 
-      grade, 
-      enrollmentNumber, 
-      certificateNumber, 
+    const {
+      name,
+      fatherName,
+      courseName,
+      sessionFrom,
+      sessionTo,
+      grade,
+      enrollmentNumber,
+      certificateNumber,
       issueDate,
       courseDuration,
       coursePeriodFrom,
@@ -41,44 +40,41 @@ exports.createCertificate = async (req, res) => {
 
     const parsedIssueDate = parseDate(issueDate);
     if (!parsedIssueDate) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid issueDate format' });
+      return res.status(400).json({ success: false, message: 'Invalid issueDate format' });
     }
 
-    const parsedCoursePeriodFrom = parseDate(coursePeriodFrom);
-    const parsedCoursePeriodTo = parseDate(coursePeriodTo);
+    // Resolve org name — centerName wins, atcName is fallback, never store null
+    const orgName = (centerName && String(centerName).trim())
+      || (atcName && String(atcName).trim())
+      || '';
 
     const cert = await Certificate.create({
-      name: String(name).trim(),
-      fatherName: String(fatherName).trim(),
-      courseName: String(courseName).trim(),
-      sessionFrom: Number(sessionFrom),
-      sessionTo: Number(sessionTo),
-      grade: String(grade).trim(),
-      enrollmentNumber: String(enrollmentNumber).trim(),
+      name:              String(name).trim(),
+      fatherName:        String(fatherName).trim(),
+      courseName:        String(courseName).trim(),
+      sessionFrom:       Number(sessionFrom),
+      sessionTo:         Number(sessionTo),
+      grade:             String(grade).trim(),
+      enrollmentNumber:  String(enrollmentNumber).trim(),
       certificateNumber: String(certificateNumber).trim(),
-      issueDate: parsedIssueDate,
-      courseDuration: courseDuration ? String(courseDuration).trim() : null,
-      coursePeriodFrom: parsedCoursePeriodFrom,
-      coursePeriodTo: parsedCoursePeriodTo,
-      centerName: centerName ? String(centerName).trim() : null,
-      atcName: atcName ? String(atcName).trim() : null,
-      certificateImage: certificateImage || null,
+      issueDate:         parsedIssueDate,
+      courseDuration:    courseDuration ? String(courseDuration).trim() : '',
+      coursePeriodFrom:  parseDate(coursePeriodFrom),
+      coursePeriodTo:    parseDate(coursePeriodTo),
+      centerName:        orgName,
+      atcName:           orgName,   // keep in sync
+      certificateImage:  certificateImage || null,
     });
 
     return res.status(201).json({ success: true, data: cert });
   } catch (err) {
     console.error('createCertificate error:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error while creating certificate' });
+    return res.status(500).json({ success: false, message: 'Server error while creating certificate' });
   }
 };
 
 /**
  * GET /api/certificates
- * Optional query: search (by enrollmentNumber, certificateNumber, name, courseName)
  */
 exports.getCertificates = async (req, res) => {
   try {
@@ -102,9 +98,7 @@ exports.getCertificates = async (req, res) => {
     return res.json({ success: true, data: certs });
   } catch (err) {
     console.error('getCertificates error:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error while fetching certificates' });
+    return res.status(500).json({ success: false, message: 'Server error while fetching certificates' });
   }
 };
 
@@ -116,37 +110,35 @@ exports.getCertificateById = async (req, res) => {
     const { id } = req.params;
     const cert = await Certificate.findById(id).lean();
     if (!cert) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Certificate not found' });
+      return res.status(404).json({ success: false, message: 'Certificate not found' });
     }
     return res.json({ success: true, data: cert });
   } catch (err) {
     console.error('getCertificateById error:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error while fetching certificate' });
+    return res.status(500).json({ success: false, message: 'Server error while fetching certificate' });
   }
 };
 
 /**
  * PUT /api/certificates/:id
- * Body: { name?, fatherName?, courseName?, sessionFrom?, sessionTo?, grade?, enrollmentNumber?, certificateNumber?, issueDate? }
  */
 exports.updateCertificate = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      name, 
-      fatherName, 
-      courseName, 
-      sessionFrom, 
-      sessionTo, 
-      grade, 
-      enrollmentNumber, 
-      certificateNumber, 
+    const {
+      name,
+      fatherName,
+      courseName,
+      sessionFrom,
+      sessionTo,
+      grade,
+      enrollmentNumber,
+      certificateNumber,
       issueDate,
       renewalDate,
+      courseDuration,
+      coursePeriodFrom,
+      coursePeriodTo,
       centerName,
       atcName,
       certificateImage
@@ -154,79 +146,48 @@ exports.updateCertificate = async (req, res) => {
 
     const update = {};
 
-    if (name != null) {
-      update.name = String(name).trim();
-    }
-    if (fatherName != null) {
-      update.fatherName = String(fatherName).trim();
-    }
-    if (courseName != null) {
-      update.courseName = String(courseName).trim();
-    }
-    if (sessionFrom != null) {
-      update.sessionFrom = Number(sessionFrom);
-    }
-    if (sessionTo != null) {
-      update.sessionTo = Number(sessionTo);
-    }
-    if (grade != null) {
-      update.grade = String(grade).trim();
-    }
-    if (enrollmentNumber != null) {
-      update.enrollmentNumber = String(enrollmentNumber).trim();
-    }
-    if (certificateNumber != null) {
-      update.certificateNumber = String(certificateNumber).trim();
-    }
+    if (name          != null) update.name              = String(name).trim();
+    if (fatherName    != null) update.fatherName        = String(fatherName).trim();
+    if (courseName    != null) update.courseName        = String(courseName).trim();
+    if (sessionFrom   != null) update.sessionFrom       = Number(sessionFrom);
+    if (sessionTo     != null) update.sessionTo         = Number(sessionTo);
+    if (grade         != null) update.grade             = String(grade).trim();
+    if (enrollmentNumber != null) update.enrollmentNumber = String(enrollmentNumber).trim();
+    if (certificateNumber != null) update.certificateNumber = String(certificateNumber).trim();
+    if (courseDuration != null) update.courseDuration   = String(courseDuration).trim();
+    if (certificateImage != null) update.certificateImage = certificateImage;
 
     if (issueDate != null) {
-      const parsedDate = parseDate(issueDate);
-      if (!parsedDate) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'Invalid issueDate format' });
-      }
-      update.issueDate = parsedDate;
+      const parsed = parseDate(issueDate);
+      if (!parsed) return res.status(400).json({ success: false, message: 'Invalid issueDate format' });
+      update.issueDate = parsed;
     }
-
     if (renewalDate != null) {
-      const parsedDate = parseDate(renewalDate);
-      if (!parsedDate) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'Invalid renewalDate format' });
-      }
-      update.renewalDate = parsedDate;
+      const parsed = parseDate(renewalDate);
+      if (!parsed) return res.status(400).json({ success: false, message: 'Invalid renewalDate format' });
+      update.renewalDate = parsed;
+    }
+    if (coursePeriodFrom != null) update.coursePeriodFrom = parseDate(coursePeriodFrom);
+    if (coursePeriodTo   != null) update.coursePeriodTo   = parseDate(coursePeriodTo);
+
+    // Resolve org name — never store null, keep centerName and atcName in sync
+    if (centerName != null || atcName != null) {
+      const orgName = (centerName && String(centerName).trim())
+        || (atcName && String(atcName).trim())
+        || '';
+      update.centerName = orgName;
+      update.atcName    = orgName;
     }
 
-    if (certificateImage != null) {
-      update.certificateImage = certificateImage;
-    }
-
-    if (centerName != null) {
-      update.centerName = centerName ? String(centerName).trim() : null;
-    }
-
-    if (atcName != null) {
-      update.atcName = atcName ? String(atcName).trim() : null;
-    }
-
-    const cert = await Certificate.findByIdAndUpdate(id, update, {
-      new: true,
-    });
-
+    const cert = await Certificate.findByIdAndUpdate(id, update, { new: true });
     if (!cert) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Certificate not found' });
+      return res.status(404).json({ success: false, message: 'Certificate not found' });
     }
 
     return res.json({ success: true, data: cert });
   } catch (err) {
     console.error('updateCertificate error:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error while updating certificate' });
+    return res.status(500).json({ success: false, message: 'Server error while updating certificate' });
   }
 };
 
@@ -238,15 +199,11 @@ exports.deleteCertificate = async (req, res) => {
     const { id } = req.params;
     const cert = await Certificate.findByIdAndDelete(id);
     if (!cert) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Certificate not found' });
+      return res.status(404).json({ success: false, message: 'Certificate not found' });
     }
     return res.json({ success: true, message: 'Certificate deleted' });
   } catch (err) {
     console.error('deleteCertificate error:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error while deleting certificate' });
+    return res.status(500).json({ success: false, message: 'Server error while deleting certificate' });
   }
 };
