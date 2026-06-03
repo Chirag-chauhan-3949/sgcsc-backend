@@ -58,31 +58,35 @@ const certificateSchema = new mongoose.Schema(
       type: Date,
       required: false,
     },
-    // Center name to track which franchise created the certificate
+    // centerName and atcName are the same conceptual field (the "ATC-:" row on the
+    // certificate template). Both are stored for DB compatibility but only centerName
+    // is used for rendering. Default is '' (empty string) — never null — so
+    // cert.centerName || cert.atcName always works correctly on the frontend.
     centerName: {
       type: String,
-      default: null
+      default: '',
+      trim: true,
     },
-    // ATC Name to display on certificate
     atcName: {
       type: String,
-      default: null
+      default: '',
+      trim: true,
     },
     // Date of birth for public verification
     dob: {
       type: Date,
-      required: false
+      required: false,
     },
     // Certificate image stored as base64 or URL
     certificateImage: {
       type: String,
-      required: false
-    }
+      required: false,
+    },
   },
   { timestamps: true }
 );
 
-// Index for faster lookups
+// Indexes for faster lookups
 certificateSchema.index({ enrollmentNumber: 1 });
 certificateSchema.index({ certificateNumber: 1 });
 certificateSchema.index({ name: 1 });
