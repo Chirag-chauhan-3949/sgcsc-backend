@@ -17,12 +17,10 @@ function parseDate(dateStr) {
  * Helper – calculate grade based on percentage
  */
 function calculateGrade(percentage) {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C';
-  if (percentage >= 40) return 'D';
+  if (percentage >= 85) return 'A+';
+  if (percentage >= 70) return 'A';
+  if (percentage >= 55) return 'B';
+  if (percentage >= 40) return 'C';
   return 'F';
 }
 
