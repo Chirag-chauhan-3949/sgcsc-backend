@@ -44,7 +44,7 @@ exports.verifyEnrollment = async (req, res) => {
         gender: student.gender,
         dob: student.dob,
         email: student.email,
-        mobile: student.mobile,
+        mobile: student.mobile || student.contact,
         state: student.state,
         district: student.district,
         address: student.address,
@@ -143,30 +143,39 @@ exports.verifyCertificate = async (req, res) => {
       return res.status(400).json({ success: false, message: "Enrollment number required" });
     }
 
-    // Find all certificates for this enrollment number
-    const certificates = await Certificate.find({ enrollmentNumber });
+    // Fetch both student certificates and typing certificates in parallel
+    const [certificates, typingCerts] = await Promise.all([
+      Certificate.find({ enrollmentNumber }),
+      TypingCertificate.find({ enrollmentNumber }),
+    ]);
 
-    if (!certificates || certificates.length === 0) {
-      return res.status(404).json({ success: false, message: "Certificate not found" });
+    if (certificates.length === 0 && typingCerts.length === 0) {
+      return res.status(404).json({ success: false, message: "No certificates found" });
     }
 
-    // Verify DOB against first certificate if provided
-    if (dob && certificates[0].dob) {
+    // DOB check if provided — match against student cert dob or typing cert (no dob field there)
+    if (dob) {
       const inputDob = new Date(dob);
-      const storedDob = new Date(certificates[0].dob);
-      if (
-        inputDob.getFullYear() !== storedDob.getFullYear() ||
-        inputDob.getMonth() !== storedDob.getMonth() ||
-        inputDob.getDate() !== storedDob.getDate()
-      ) {
-        return res.status(404).json({ success: false, message: "Certificate not found" });
+      const certWithDob = certificates.find((c) => c.dob);
+      if (certWithDob) {
+        const storedDob = new Date(certWithDob.dob);
+        if (
+          inputDob.getFullYear() !== storedDob.getFullYear() ||
+          inputDob.getMonth() !== storedDob.getMonth() ||
+          inputDob.getDate() !== storedDob.getDate()
+        ) {
+          return res.status(404).json({ success: false, message: "Certificate not found" });
+        }
       }
     }
 
-    res.json({
-      success: true,
-      data: certificates,
-    });
+    // Tag each record with certType so the frontend can pick the right renderer
+    const tagged = [
+      ...certificates.map((c) => ({ ...c.toObject(), certType: "student" })),
+      ...typingCerts.map((c) => ({ ...c.toObject(), certType: "typing" })),
+    ];
+
+    res.json({ success: true, data: tagged });
   } catch (err) {
     console.error("Certificate verification error:", err);
     res.status(500).json({ success: false });
