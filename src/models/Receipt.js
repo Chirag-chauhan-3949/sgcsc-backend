@@ -108,6 +108,11 @@ const receiptSchema = new mongoose.Schema({
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'AdminUser'
+  },
+  franchise: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Franchise',
+    default: null
   }
 }, {
   timestamps: true

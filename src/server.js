@@ -136,6 +136,7 @@ app.use("/api/franchise/typing-certificates", require("./routes/franchiseTypingC
 app.use("/api/franchise/id-cards", require("./routes/franchiseIdCardRoutes"));
 app.use("/api/franchise/admit-cards", require("./routes/franchiseAdmitCardRoutes"));
 app.use("/api/franchise/marksheets", require("./routes/franchiseMarksheetRoutes"));
+app.use("/api/franchise/receipts", require("./routes/franchiseReceiptRoutes"));
 
 /* ===================== PUBLIC VERIFICATION ===================== */
 const publicVerificationController = require("./controllers/publicVerificationController");
