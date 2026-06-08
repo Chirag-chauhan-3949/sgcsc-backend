@@ -7,15 +7,32 @@ const Marksheet = require("../models/Marksheet");
 /* ================= ENROLLMENT ================= */
 exports.verifyEnrollment = async (req, res) => {
   try {
-    const { rollNumber } = req.body;
+    const { enrollmentNo, dob } = req.body;
 
-    // Find by rollNumber only
+    if (!enrollmentNo) {
+      return res.status(400).json({ success: false, message: "Enrollment number required" });
+    }
+
+    // Find by enrollmentNo or rollNumber (both are used as identifiers)
     const student = await Student.findOne({
-      rollNumber,
+      $or: [{ enrollmentNo }, { rollNumber: enrollmentNo }],
     }).select("-password");
 
     if (!student) {
       return res.status(404).json({ success: false });
+    }
+
+    // Verify DOB if provided
+    if (dob && student.dob) {
+      const inputDob = new Date(dob);
+      const storedDob = new Date(student.dob);
+      if (
+        inputDob.getFullYear() !== storedDob.getFullYear() ||
+        inputDob.getMonth() !== storedDob.getMonth() ||
+        inputDob.getDate() !== storedDob.getDate()
+      ) {
+        return res.status(404).json({ success: false });
+      }
     }
 
     res.json({
@@ -99,23 +116,35 @@ exports.verifyCertificateByNumber = async (req, res) => {
 /* ================= CERTIFICATE ================= */
 exports.verifyCertificate = async (req, res) => {
   try {
-    const { rollNumber, certNo } = req.body;
-    
-    // Try certNo from URL params first, then from body
-    const certificateNumber = certNo || req.params.certNo || rollNumber;
+    const { enrollmentNumber, dob } = req.body;
 
-    // Find certificate by certificateNumber
-    const certificate = await Certificate.findOne({
-      certificateNumber: certificateNumber
-    });
+    if (!enrollmentNumber) {
+      return res.status(400).json({ success: false, message: "Enrollment number required" });
+    }
 
-    if (!certificate) {
+    // Find all certificates for this enrollment number
+    const certificates = await Certificate.find({ enrollmentNumber });
+
+    if (!certificates || certificates.length === 0) {
       return res.status(404).json({ success: false, message: "Certificate not found" });
+    }
+
+    // Verify DOB against first certificate if provided
+    if (dob && certificates[0].dob) {
+      const inputDob = new Date(dob);
+      const storedDob = new Date(certificates[0].dob);
+      if (
+        inputDob.getFullYear() !== storedDob.getFullYear() ||
+        inputDob.getMonth() !== storedDob.getMonth() ||
+        inputDob.getDate() !== storedDob.getDate()
+      ) {
+        return res.status(404).json({ success: false, message: "Certificate not found" });
+      }
     }
 
     res.json({
       success: true,
-      data: certificate,
+      data: certificates,
     });
   } catch (err) {
     console.error("Certificate verification error:", err);
