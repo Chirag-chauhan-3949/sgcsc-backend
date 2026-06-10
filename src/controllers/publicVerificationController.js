@@ -121,13 +121,30 @@ exports.verifyResult = async (req, res) => {
 exports.verifyCertificateByNumber = async (req, res) => {
   try {
     const { certificateNumber } = req.params;
+    const { dob } = req.query;
+
     if (!certificateNumber) {
       return res.status(400).json({ success: false, message: "Certificate number required" });
+    }
+    if (!dob) {
+      return res.status(400).json({ success: false, message: "Date of birth required" });
     }
 
     const certificate = await Certificate.findOne({ certificateNumber });
     if (!certificate) {
       return res.status(404).json({ success: false, message: "Certificate not found" });
+    }
+
+    if (certificate.dob) {
+      const inputDob = new Date(dob);
+      const storedDob = new Date(certificate.dob);
+      if (
+        inputDob.getFullYear() !== storedDob.getFullYear() ||
+        inputDob.getMonth() !== storedDob.getMonth() ||
+        inputDob.getDate() !== storedDob.getDate()
+      ) {
+        return res.status(404).json({ success: false, message: "Certificate not found" });
+      }
     }
 
     res.json({ success: true, data: certificate });
@@ -189,13 +206,34 @@ exports.verifyCertificate = async (req, res) => {
 exports.verifyTypingCertificateByNumber = async (req, res) => {
   try {
     const { certificateNo } = req.params;
+    const { dob } = req.query;
+
     if (!certificateNo) {
       return res.status(400).json({ success: false, message: "Certificate number required" });
+    }
+    if (!dob) {
+      return res.status(400).json({ success: false, message: "Date of birth required" });
     }
 
     const cert = await TypingCertificate.findOne({ certificateNo });
     if (!cert) {
       return res.status(404).json({ success: false, message: "Typing certificate not found" });
+    }
+
+    // Validate DOB against the linked student record
+    const student = await Student.findOne({
+      $or: [{ enrollmentNo: cert.enrollmentNumber }, { rollNumber: cert.enrollmentNumber }],
+    });
+    if (student && student.dob) {
+      const inputDob = new Date(dob);
+      const storedDob = new Date(student.dob);
+      if (
+        inputDob.getFullYear() !== storedDob.getFullYear() ||
+        inputDob.getMonth() !== storedDob.getMonth() ||
+        inputDob.getDate() !== storedDob.getDate()
+      ) {
+        return res.status(404).json({ success: false, message: "Certificate not found" });
+      }
     }
 
     res.json({ success: true, data: cert });
