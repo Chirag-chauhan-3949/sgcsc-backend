@@ -300,6 +300,11 @@ exports.updateStudent = async (req, res) => {
 
     const update = { ...req.body };
 
+    // Apply uploaded photo URL if a file was sent
+    if (req.file) {
+      update.photo = req.file.path;
+    }
+
     // normalize booleans
     if (update.isCertified !== undefined) {
       update.isCertified =
